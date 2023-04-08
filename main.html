@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Тетрис</title>
+</head>
+<body>
+<h1><font face="Times New Roman">ТЕТРИС</font></h1>
+<p><font size=4 color=#00008b face="Times New Roman">Клавиши для управления:<br>
+  Стрелка влево - переместить фигуру влево<br>
+  Стрелка вправо - переместить фигуру вправо<br>
+  Стрелка вверх - повернуть фигуру на 90 градусов<br>
+  Стрелка вниз - уронить фигуру</font>
+</p>
+</body>
+<style>
+  body{
+    background-color: #A8E4A0;
+  }
+  h1{
+    text-align:center;
+    color: darkblue;
+  }
+  h2{
+    color: darkblue;
+  }
+  p{
+    position: absolute;
+    top: 315px;
+    left: 1050px;
+  }
+  canvas {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    background: bisque;
+    border: thick dashed darkblue;
+  }
+  button {
+    position: absolute;
+    width: 200px;
+    height: 50px;
+    top: 250px;
+    left: 197px;
+    background: bisque;
+    border: thick dashed darkblue;
+  }
+  .div_table
+  {
+    display: table;
+    position: absolute;
+    top: 100px;
+    left: 1050px;
+  }
+  .div_row
+  {
+  }
+  .div_cell
+  {
+    display: table-cell;
+    float: left;
+    width: 30px;
+    height: 30px;
+    border: thin solid darkblue;
+    margin: 2px;
+  }
+</style>
+
+<div id="table" class="div_table">
+  <h2><font size="3" face="Times New Roman">Следующая фигура:</font></h2>
+  <div class="div_row">
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+  </div>
+  <div class="div_row">
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+  </div>
+  <div class="div_row">
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+  </div>
+  <div class="div_row">
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+    <div class="div_cell"></div>
+  </div>
+</div>
+
+<canvas height='640' width='320' id='canvasid'></canvas>
+<canvas height='100' width='200' id='score'></canvas>
+<button id="start" onclick="start()"><font color="#00008b">Играть</font></button>
+<button id="show_records" onclick="show_records()"><font color="#00008b">Показать таблицу рекордов</font></button>
+
+<script>
+  const figures_mas = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
+  const figures = {
+    'I': [
+      [0,0,0,0],
+      [0,0,0,0],
+      [1,1,1,1],
+      [0,0,0,0]
+    ],
+    'J': [
+      [1,0,0],
+      [1,1,1],
+      [0,0,0]
+    ],
+    'L': [
+      [0,0,1],
+      [1,1,1],
+      [0,0,0]
+    ],
+    'O': [
+      [1,1],
+      [1,1]
+    ],
+    'S': [
+      [0,1,1],
+      [1,1,0],
+      [0,0,0]
+    ],
+    'T': [
+      [0,1,0],
+      [1,1,1],
+      [0,0,0]
+    ],
+    'Z': [
+      [1,1,0],
+      [0,1,1],
+      [0,0,0]
+    ],
+  }
+  const colors = {
+    'I': 'red',
+    'J': 'blue',
+    'L': 'orange',
+    'O': 'coral',
+    'S': 'purple',
+    'T': 'deepskyblue',
+    'Z': 'green'
+  }
+  var num_score = 0;
+  var level = 1;
+  var name = localStorage.getItem("tetris.username");
+  let size_square = 32;
+  let indent = 1;
+  let start_speed = 45;
+  let cadr = 0;
+
+  const canvas = document.getElementById('canvasid');
+  const ctx = canvas.getContext('2d');
+  ctx.fillRect(0, 0, 320, 640);
+
+  const score = document.getElementById('score');
+  score.style.position = 'absolute';
+  score.style.top = "321px";
+  score.style.left = "192px";
+  const ctx2 = score.getContext('2d');
+  ctx2.font = 'bold 18px Arial';
+  ctx2.fillStyle = "darkblue";
+
+  const button_start = document.getElementById("start");
+  button_start.style.top = "250px";
+  button_start.style.left = "197px";
+  const button_show_records = document.getElementById("show_records");
+  button_show_records.style.top = "452px";
+  button_show_records.style.left = "197px";
+
+  function show_info() {
+    ctx2.clearRect(0, 0, score.width, score.height);
+    ctx2.fillText('Текущий уровень: ' + level, 15, 25);
+    ctx2.fillText('Очки: ' + num_score, 15, 50);
+    ctx2.fillText('Игрок: ' + name, 15, 80);
+  }
+  show_info();
+
+  let tetris_field = [];
+  let height = 20;
+  let width = 10;
+  for (let i = -2; i < height; i++){
+    tetris_field[i] = []
+  }
+  function clear_field() {
+    for (let j = -2; j < height; j++){
+      for (let i = 0; i < width; i++){
+        tetris_field[j][i] = 0;
+      }
+    }
+  }
+  clear_field();
+
+  function choose_figure(mi, ma) {
+    return Math.floor(Math.random() * (ma - mi + 1) + mi)
+  }
+
+  function rotate_figure(matr) {
+    matr = matr[0].map((value, index) => matr.map(row => row[index]).reverse());
+    return matr;
+  }
+
+  var queue_figures = [];
+  if (queue_figures.length === 0) {
+    for (let i = 0; i < 5; i++){
+      let num_figure = choose_figure(0, figures_mas.length - 1);
+      queue_figures.push(figures_mas[num_figure]);
+    }
+  }
+  let copy_queue = []
+  var field_doc = document.getElementById("table").getElementsByClassName("div_cell");
+
+  function show_next_figure() {
+    copy_queue = queue_figures.slice(0);
+    let next_figure = copy_queue.pop();
+    for (let i = 0; i < field_doc.length; i++) {
+      field_doc[i].style.backgroundColor = "bisque";
+    }
+    for (let i = 0; i < figures[next_figure].length; i++) {
+      for (let j = 0; j < figures[next_figure].length; j++) {
+        if (figures[next_figure][i][j]) {
+          field_doc[4*i+j].style.backgroundColor = colors[next_figure];
+        }
+      }
+    }
+  }
+
+  function get_figure(first_flag = false) {
+    let new_figure = queue_figures.pop();
+    if (queue_figures.length === 0) {
+      for (let i = 0; i < 5; i++){
+        let num_figure = choose_figure(0, figures_mas.length - 1);
+        queue_figures.push(figures_mas[num_figure]);
+      }
+    }
+    if (!first_flag) {
+      show_next_figure();
+    }
+    let new_matr = figures[new_figure];
+    let new_color = colors[new_figure];
+    let new_x = width / 2 - Math.round(new_matr.length / 2);
+    let new_y = -2;
+    return {new_figure, new_matr, new_color, new_x, new_y};
+  }
+  let first_flag = true;
+  let figure_on_the_field = get_figure(first_flag)
+
+  function clear_window(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function show_records() {
+    clear_window();
+    var records = []
+    records = localStorage;
+    //console.log(records);
+    var records_dict = Object.keys(records).map(function(key) {
+      return [key, records[key]];
+    });
+    records_dict.sort(function(a_el, b_el) {
+      return b_el[1] - a_el[1];
+    });
+    ctx.font = '14px Arial';
+    for (let i_s = 0; i_s < records_dict.length; i_s++) {
+      if (records_dict[i_s][0] !== "tetris.username") {
+        ctx.fillText(records_dict[i_s][0] + ' ' + records_dict[i_s][1] + ' ' + 'очков', 15, 15 * (i_s + 1));
+      }
+    }
+  }
+
+  function save_record(name, score) {
+    if (!localStorage[name]) {
+      localStorage[name] = score;
+    }
+    if (score > localStorage[name]) {
+      localStorage[name] = score;
+    }
+  }
+
+  function check(matr, y_check, x_check) {
+    for (let j = 0; j < matr.length; j++) {
+      for (let i = 0; i < matr[j].length; i++) {
+        if (matr[j][i] && (i + x_check < 0 || i + x_check >= width || j + y_check >= height || tetris_field[j + y_check][i + x_check]))
+          return false;
+      }
+    }
+    return true;
+  }
+
+  function game_over() {
+    console.log('Game over!');
+    clear_field();
+    cancelAnimationFrame(game_process);
+    game_process = null;
+    save_record(name, num_score);
+    num_score = 0;
+    level = 1;
+    clear_window();
+    show_records();
+    for (let i = 0; i < field_doc.length; i++) {
+      field_doc[i].style.backgroundColor = "bisque";
+    }
+  }
+  let check_end = false;
+
+  function isThere(figure) {
+    return !!figure;
+  }
+
+  function processing() {
+    for (let j = 0; j < figure_on_the_field.new_matr.length; j++) {
+      for (let i = 0; i < figure_on_the_field.new_matr[j].length; i++) {
+        if (figure_on_the_field.new_matr[j][i]) {
+          if (j + figure_on_the_field.new_y < -1) {
+            check_end = true;
+            return game_over();
+          }
+          tetris_field[j + figure_on_the_field.new_y][i + figure_on_the_field.new_x] = figure_on_the_field.new_figure;
+        }
+      }
+    }
+    for (let j = height - 1; j >= 0;) {
+      if (tetris_field[j].every(isThere)) {
+        num_score += 100 * level;
+        for (let j_m = j; j_m >= 0; j_m--) {
+          for (let i_m = 0; i_m < width; i_m++) {
+            tetris_field[j_m][i_m] = tetris_field[j_m-1][i_m];
+          }
+        }
+      }
+      else j--;
+    }
+    figure_on_the_field = get_figure();
+  }
+
+  document.addEventListener('keydown', function(event) {
+    if (check_end) return;
+    let key = event.code;
+    //console.log("Событие keydown: " + key);
+
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      let x_control;
+      if (key === 'ArrowLeft') x_control = figure_on_the_field.new_x - 1;
+      else x_control = figure_on_the_field.new_x + 1;
+      if (check(figure_on_the_field.new_matr, figure_on_the_field.new_y, x_control)) {
+        figure_on_the_field.new_x = x_control;
+      }
+    }
+
+    if (key === 'ArrowUp') {
+      let new_matr = rotate_figure(figure_on_the_field.new_matr);
+      if (check(new_matr, figure_on_the_field.new_y, figure_on_the_field.new_x)) {
+        figure_on_the_field.new_matr = new_matr;
+      }
+    }
+
+    if (key === 'ArrowDown') {
+      let flag = true;
+      while (flag) {
+        let y_control = figure_on_the_field.new_y + 1;
+        if (!check(figure_on_the_field.new_matr, y_control, figure_on_the_field.new_x)) {
+          figure_on_the_field.new_y = y_control - 1;
+          flag = false;
+          processing();
+          return;
+        }
+        figure_on_the_field.new_y = y_control;
+      }
+    }
+  }
+  );
+
+  function game() {
+    game_process = requestAnimationFrame(game);
+    clear_window();
+
+    for (let j = 0; j < height; j++) {
+      for (let i = 0; i < width; i++) {
+        if (tetris_field[j][i]) {
+          ctx.fillStyle = colors[tetris_field[j][i]];
+          ctx.fillRect(i * size_square, j * size_square, size_square - indent, size_square - indent);
+        }
+      }
+    }
+
+    show_info();
+    if (num_score >= 200) {
+      level = 2;
+    }
+    if (num_score >= 700) {
+      level = 3;
+    }
+    if (num_score >= 1600) {
+      level = 4;
+    }
+    if (num_score >= 2000) {
+      level = 5;
+    }
+
+    if (figure_on_the_field) {
+      if (++cadr > start_speed - 5 * (level - 1)) {
+        cadr = 0;
+        figure_on_the_field.new_y++;
+        if (!check(figure_on_the_field.new_matr, figure_on_the_field.new_y, figure_on_the_field.new_x)) {
+          figure_on_the_field.new_y--;
+          processing();
+        }
+      }
+      ctx.fillStyle = colors[figure_on_the_field.new_figure];
+      for (let j = 0; j < figure_on_the_field.new_matr.length; j++) {
+        for (let i = 0; i < figure_on_the_field.new_matr[j].length; i++) {
+          if (figure_on_the_field.new_matr[j][i]) {
+            ctx.fillRect((i + figure_on_the_field.new_x) * size_square, (j + figure_on_the_field.new_y) * size_square, size_square - indent, size_square - indent);
+          }
+        }
+      }
+    }
+  }
+
+  clear_window();
+  let game_process = null;
+  function start() {
+    if (game_process === null) {
+      first_flag = false;
+      show_next_figure();
+      game_process = requestAnimationFrame(game);
+      check_end = false;
+    }
+  }
+</script>
+</html>
